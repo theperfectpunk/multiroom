@@ -14,10 +14,10 @@ router.post('/play', function(req, res, next) {
     if(req.body.ip!==undefined||req.body.songID!==undefined)
         if(req.body.ip.length)
             for(var ip of req.body.ip) {
-                fetch('http://'+ip+':8080/jsonrpc', {
+                fetch('http://'+ip+':3002/kodiclient/play', {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({"jsonrpc":"2.0","method":"player.open", "params": {"item":{"songid":req.body.songID===undefined?843:req.body.songID}}, "id": 0})
+                    body: JSON.stringify({timestamp : (new Date()).getTime()+10000, payload: {"jsonrpc":"2.0","method":"player.open", "params": {"item":{"songid":req.body.songID===undefined?843:req.body.songID}}, "id": 0}})
                 })
                 .then(response => {
                     apiHitTime[response.url] = new Date().getTime()
@@ -141,6 +141,33 @@ router.post('/change', function(req, res, next) {
 
     })
     
+})
+
+router.post('/seek', function(req, res, next) {
+    debugger;
+    if(req.body.time!==undefined) {
+        if(status!=="stopped") {
+            var apiHitCounter = 0;
+            for(var ip of clients) {
+                fetch('http://'+ip+':8080/jsonrpc', {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({"jsonrpc":"2.0","method":"player.seek", "params": {"playerid": 0, "value": {"time":req.body.time}}, "id": 0})
+                })
+                .then(response => {
+                    if(apiHitCounter===clients.length-1) {
+                        res.status(200).send({"message": "success"});
+                    }
+                    apiHitCounter++;
+                })
+            }
+        }
+        else {
+            res.status(400).send({"message": "multiroom not playing"})
+        }
+    } else {
+        res.status(400).send({"message": "time not defined"})
+    }
 })
 
 router.get('/stop', function(req, res, next) {
