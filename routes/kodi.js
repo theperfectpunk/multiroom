@@ -17,7 +17,7 @@ router.post('/play', function(req, res, next) {
                 fetch('http://'+ip+':3002/kodiclient/play', {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({timestamp : (new Date()).getTime()+10000, payload: {"jsonrpc":"2.0","method":"player.open", "params": {"item":{"songid":req.body.songID===undefined?843:req.body.songID}}, "id": 0}})
+                    body: JSON.stringify({timestamp : (new Date()).getTime()+2000, payload: {"jsonrpc":"2.0","method":"player.open", "params": {"item":{"songid":req.body.songID===undefined?843:req.body.songID}}, "id": 0}})
                 })
                 .then(response => {
                     apiHitTime[response.url] = new Date().getTime()
@@ -37,35 +37,6 @@ router.post('/play', function(req, res, next) {
             res.status(400).send({"message": "ip list is empty"})
     else
         res.status(400).send({"message": "ip or songid not specified"})
-    /*fetch('http://192.168.0.4:8080/jsonrpc', {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({"jsonrpc":"2.0","method":"player.open", "params": {"item":{"songid":req.query.songid===undefined?843:req.query.songid}}, "id": 0})
-    })
-    .then(response => response.json())
-    .then(data => {
-        apiHitTime["four"] = new Date().getTime()
-        if(apiHit==1) {
-            apiHitTime["difference"] = apiHitTime["four"] - apiHitTime["ninety"];
-            res.status(200).send({"message": "success", apiHitTime});
-        }
-        apiHit++;
-    })
-
-    fetch('http://192.168.0.90:8080/jsonrpc', {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({"jsonrpc":"2.0","method":"player.open", "params": {"item":{"songid":req.query.songid===undefined?843:req.query.songid}}, "id": 0})
-    })
-    .then(response => response.json())
-    .then(data => {
-        apiHitTime["ninety"] = new Date().getTime()
-        if(apiHit==1) {
-            apiHitTime["difference"] = apiHitTime["four"] - apiHitTime["ninety"];
-            res.status(200).send({"message": "success", apiHitTime})
-        }
-        apiHit++;
-    })*/
 })
 
 router.get('/status', function(req, res, next) {
@@ -73,29 +44,21 @@ router.get('/status', function(req, res, next) {
 })
 
 router.post('/change', function(req, res, next) {
-    console.log(clients[0]);
-    fetch('http://'+clients[0]+':8080/jsonrpc', {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({"jsonrpc":"2.0","method":"Player.GetProperties","params":{"playerid":0,"properties":["time"]},"id":0})
-    })
-    .then(response => response.json())
-    .catch(ex => {debugger;})
-    .then(seekData => {
-        var seekTime = seekData.result.time;
-
-        //find new and deleted elements
-        var insertedIP = [];
-        var removedIP = []
-        for(var reqIP of req.body.ip) {
-            if(!clients.includes(reqIP))
-                insertedIP.push(reqIP)
-        }
-        for(var clientIP of clients) {
-            if(!req.body.ip.includes(clientIP))
-                removedIP.push(clientIP)
-        }
-        var apiHitCounter = 0
+    
+    var seekTimeStamp = new Date().getTime()
+    //find new and deleted elements
+    var insertedIP = [];
+    var removedIP = []
+    for(var reqIP of req.body.ip) {
+        if(!clients.includes(reqIP))
+            insertedIP.push(reqIP)
+    }
+    for(var clientIP of clients) {
+        if(!req.body.ip.includes(clientIP))
+            removedIP.push(clientIP)
+    }
+    var apiHitCounter = 0
+    if(removedIP.length !== 0) {
         for(var ip of removedIP) {
             fetch('http://'+ip+':8080/jsonrpc', {
                 method: "POST",
@@ -103,44 +66,64 @@ router.post('/change', function(req, res, next) {
                 body: JSON.stringify({"jsonrpc":"2.0","method":"player.stop", "params": { "playerid": 0 }, "id": 0})
             })
             .then(response => {
-                if(apiHitCounter===removedIP.length+insertedIP.length-1) {
-                    status = "playing"
-                    clients = req.body.ip
-                    res.status(200).send({"message": "success"});
-                }
                 apiHitCounter++;
-            })
-        }
-        for(var ip of insertedIP) {
-            fetch('http://'+ip+':8080/jsonrpc', {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({"jsonrpc":"2.0","method":"player.open", "params": {"item":{"songid":songid===undefined?843:songid}}, "id": 0})
-            })
-            .then(response => {
-                if(apiHitCounter===removedIP.length+insertedIP.length-1) {
-                    status = "playing"
-                    clients = req.body.ip
-                    for(var ip of insertedIP) {
-                        fetch('http://'+ip+':8080/jsonrpc', {
-                            method: "POST",
-                            headers: {"Content-Type": "application/json"},
-                            body: JSON.stringify({"jsonrpc":"2.0","method":"player.seek", "params": {"playerid": 0, "value": {"time":seekTime}}, "id": 0})
-                        })
-                        .then(response => {
-                            if(apiHitCounter===removedIP.length+2*insertedIP.length-2) {
-                                res.status(200).send({"message": "success"});
-                            }
-                            apiHitCounter++;
-                        })
+                if(apiHitCounter===removedIP.length) {
+                    if(insertedIP.length === 0) {
+                        status = "playing"
+                        clients = req.body.ip
+                        res.status(200).send({"message": "success"});
+                    } else {
+                        res.status(500).send({"message": "Nothing done"});
                     }
                 }
-                apiHitCounter++;
             })
         }
+    } else {
+        if(insertedIP.length !== 0) {
+            for(var ip of insertedIP) {
+                fetch('http://'+ip+':8080/jsonrpc', {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({"jsonrpc":"2.0","method":"player.open", "params": {"item":{"songid":songid===undefined?843:songid}}, "id": 0})
+                })
+                .then(response => {
+                    apiHitCounter++;
+                    if(apiHitCounter===insertedIP.length) {
+                        fetch('http://'+clients[0]+':8080/jsonrpc', {
+                            method: "POST",
+                            headers: {"Content-Type": "application/json"},
+                            body: JSON.stringify({"jsonrpc":"2.0","method":"Player.GetProperties","params":{"playerid":0,"properties":["time"]},"id":0})
+                        })
+                        .then(response => response.json())
+                        .catch(ex => {debugger;})
+                        .then(seekData => {
+                            status = "playing"
+                            var currentTimeStamp = new Date().getTime()
+                            var seekTime = seekData.result.time
 
-    })
-    
+                            clients = req.body.ip
+                            for(var ip of clients) {
+                                fetch('http://'+ip+':3002/kodiclient/seek', {
+                                    method: "POST",
+                                    headers: {"Content-Type": "application/json"},
+                                    body: JSON.stringify({timestamp: currentTimeStamp, seekTime: seekTime})
+                                })
+                                .then(response => {
+
+                                    apiHitCounter++;
+                                    if(apiHitCounter===insertedIP.length+clients.length) {
+                                        res.status(200).send({"message": "success"});
+                                    }
+                                })
+                            }
+                        })
+                    }
+                })
+            }
+        } else {
+            res.status(400).send({"message": "IP list not changed"})
+        }
+    } 
 })
 
 router.post('/seek', function(req, res, next) {
