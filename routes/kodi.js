@@ -144,15 +144,17 @@ router.post('/change', function(req, res, next) {
 })
 
 router.post('/seek', function(req, res, next) {
-    debugger;
     if(req.body.time!==undefined) {
         if(status!=="stopped") {
             var apiHitCounter = 0;
+            var currentTimeStamp = new Date().getTime();
             for(var ip of clients) {
-                fetch('http://'+ip+':8080/jsonrpc', {
+                fetch('http://'+ip+':3002/kodiclient/seek', {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({"jsonrpc":"2.0","method":"player.seek", "params": {"playerid": 0, "value": {"time":req.body.time}}, "id": 0})
+                    body: JSON.stringify({
+                        timestamp: currentTimeStamp, seekTime: req.body.time
+                    })
                 })
                 .then(response => {
                     if(apiHitCounter===clients.length-1) {
@@ -171,21 +173,6 @@ router.post('/seek', function(req, res, next) {
 })
 
 router.get('/stop', function(req, res, next) {
-    /*fetch('http://192.168.0.4:8080/jsonrpc', {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({"jsonrpc":"2.0","method":"player.stop", "params": { "playerid": 0 }, "id": 0})
-    })
-    .then(response => response.json())
-    .then(data => {console.log(data)})
-
-    fetch('http://192.168.0.90:8080/jsonrpc', {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({"jsonrpc":"2.0","method":"player.stop", "params": { "playerid": 0 }, "id": 0})
-    })
-    .then(response => response.json())
-    .then(data => {console.log(data)})*/
     var apiHit = 0;
     if(status!=="stopped")
         for(var ip of clients) {
@@ -240,6 +227,38 @@ router.get('/time', function(req, res, next) {
         apiHit++;
     })
 })
+
+/* Play Pause all Multiroom Clients */
+router.get('/playpause', function(req, res, next)  {
+    var apiHitCounter = 0;
+    if(status==="playing") {
+        var timestamp = new Date().getTime() + 2000;
+        for( var ip of clients ) {
+            fetch("http://"+ip+":3002/kodiclient/playpause", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({timestamp: timestamp})
+            })
+            .then( response => response.json())
+            .then( data => {
+                if(data.message === "success") {
+                    apiHitCounter++;
+                    if(apiHitCounter===clients.length) {
+                        status = 'playing';;
+                        res.status(200).send({"message": "success"});
+                    }
+                } else {
+                    status = "stopped";
+                    clients = [];
+                    res.status(500).send({"message": "failure"})
+                }
+            })
+        }
+    } else {
+        res.send({"message": "multiroom not playing"})
+    }
+})
+
 /* Ignore all GET requests */
 router.get('/*', function(req, res, next) {
     res.status(400).send({"message": "GET not Supported on this method"})
