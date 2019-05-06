@@ -94,34 +94,20 @@ router.post('/play_queue', function(req, res, next) {
                                                     apiHitCounter++;
                                                     if(req.body.ip.length === apiHitCounter){
                                                         apiHitCounter=0;
+                                                        clients = req.body.ip;
+                                                        status = "playing";
+                                                        songid = req.body.songID;
                                                         const agent = new https.Agent({
                                                             rejectUnauthorized: false
                                                           })
-                                                        /*fetch('https://'+req.body.ip[0]+'/kodi?song_type='+req.body.song_type+'&songid='+req.body.songID, {
+                                                        fetch('https://'+req.body.ip[0]+'/kodi?song_type='+req.body.song_type+'&songid='+req.body.songID, {
                                                             method: "POST",
                                                             agent: agent,
                                                         })
                                                         .then(response => response.json())
-                                                        .then(data => {*/
-                                                            for(var ip of req.body.ip) {
-                                                                for(var songid of [4048, 3591]) {
-                                                                    fetch('http://'+ip+':8080/jsonrpc', {
-                                                                        method: "POST",
-                                                                        headers: {"Content-Type": "application/json"},
-                                                                        body: JSON.stringify({"jsonrpc":"2.0","method":"Playlist.Add", "params": {"playlistid": 0, "item": {"songid": songid}}, "id": 0})
-                                                                    })
-                                                                    .then(response => {
-                                                                        apiHitCounter++;
-                                                                        if(apiHitCounter===req.body.ip.length*2) {
-                                                                            clients = req.body.ip;
-                                                                            status = "playing";
-                                                                            songid = req.body.songID;
-                                                                            res.status(200).send({"message": "success"});
-                                                                        }
-                                                                    })
-                                                                }
-                                                            }
-                                                        //})
+                                                        .then(data => {
+                                                            res.status(200).send({"message": "success", "data": data});
+                                                        })
                                                     }
                                                 })
                                             }
