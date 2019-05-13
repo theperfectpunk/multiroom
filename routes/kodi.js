@@ -105,13 +105,13 @@ router.post('/play_queue', function(req, res, next) {
                                                         .then(response => response.json())
                                                         .then(data => {
                                                             res.status(200).send({"message": "success", "data": data});
-                                                            for(var ip of req.body.ip) {
+                                                            /*for(var ip of req.body.ip) {
                                                                 fetch('http://'+ip+':8080/jsonrpc', {
                                                                     method: "POST",
                                                                     headers: {"Content-Type": "application/json"},
                                                                     body: JSON.stringify({"jsonrpc":"2.0","method":"Playlist.Add", "params": {"playlistid": 0, item: {"songid": data[2]}}, "id": 0})
                                                                 })
-                                                            }
+                                                            }*/
                                                         })
                                                     }
                                                 })
