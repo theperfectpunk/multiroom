@@ -82,7 +82,6 @@ router.post('/play_queue', function(req, res, next) {
                                         if(req.body.ip.length === apiHitCounter){
                                             apiHitCounter=0;
                                             var timestampThen = new Date().getTime();
-                                            console.log(timestampThen-timestampAtBegin);
                                             for(var ip of req.body.ip) {
                                                 fetch('http://'+ip+':3002/kodiclient/play', {
                                                     method: "POST",
@@ -90,7 +89,6 @@ router.post('/play_queue', function(req, res, next) {
                                                     body: JSON.stringify({timestamp : (new Date()).getTime()+2000, payload: {"jsonrpc":"2.0","method":"Player.Open", "params": {"item":{"playlistid": 0, "position": 0}}, "id": 0}})
                                                 })
                                                 .then(response => {
-                                                    console.log(new Date().getTime() - timestampThen);
                                                     apiHitCounter++;
                                                     if(req.body.ip.length === apiHitCounter){
                                                         apiHitCounter=0;
